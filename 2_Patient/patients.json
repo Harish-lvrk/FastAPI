@@ -1,61 +1,52 @@
 {
-  "patients": [
-    {
-      "patient_id": "P001",
-      "name": "Aarav Sharma",
-      "age": 32,
-      "gender": "Male",
-      "contact": {
-        "phone": "+91-9876543210",
-        "email": "aarav.sharma@example.com",
-        "address": "23 MG Road, Bengaluru, Karnataka"
-      },
-      "medical_details": {
-        "diagnosis": "Type 2 Diabetes",
-        "medications": ["Metformin 500mg", "Glimepiride 2mg"],
-        "allergies": ["Penicillin"],
-        "admission_date": "2025-09-12",
-        "discharge_date": "2025-09-20",
-        "attending_physician": "Dr. Meera Kapoor"
-      }
-    },
-    {
-      "patient_id": "P002",
-      "name": "Sneha Patel",
-      "age": 45,
-      "gender": "Female",
-      "contact": {
-        "phone": "+91-9823456789",
-        "email": "sneha.patel@example.com",
-        "address": "14 Nehru Nagar, Ahmedabad, Gujarat"
-      },
-      "medical_details": {
-        "diagnosis": "Hypertension",
-        "medications": ["Amlodipine 5mg"],
-        "allergies": [],
-        "admission_date": "2025-08-02",
-        "discharge_date": "2025-08-05",
-        "attending_physician": "Dr. Rajesh Nair"
-      }
-    },
-    {
-      "patient_id": "P003",
-      "name": "Rohit Verma",
-      "age": 27,
-      "gender": "Male",
-      "contact": {
-        "phone": "+91-9001122233",
-        "email": "rohit.verma@example.com",
-        "address": "56 Park Street, Kolkata, West Bengal"
-      },
-      "medical_details": {
-        "diagnosis": "Fractured Arm",
-        "medications": ["Paracetamol 650mg", "Calcium Supplement"],
-        "allergies": ["Dust"],
-        "admission_date": "2025-10-01",
-        "discharge_date": "2025-10-10",
-        "attending_physician": "Dr. Anjali Das"
-      }
-    }
-  ]
+  "P001": {
+    "name": "Ananya Verma",
+    "city": "Guwahati",
+    "age": 28,
+    "gender": "female",
+    "height": 1.65,
+    "weight": 90,
+    "bmi": 33.06,
+    "verdict": "Obese"
+  },
+  "P002": {
+    "name": "Ravi Mehta",
+    "city": "Mumbai",
+    "age": 35,
+    "gender": "male",
+    "height": 1.75,
+    "weight": 85,
+    "bmi": 27.76,
+    "verdict": "Overweight"
+  },
+  "P003": {
+    "name": "Sneha Kulkarni",
+    "city": "Pune",
+    "age": 22,
+    "gender": "female",
+    "height": 1.6,
+    "weight": 45,
+    "bmi": 17.58,
+    "verdict": "Underweight"
+  },
+  "P004": {
+    "name": "Arjun Verma",
+    "city": "Mumbai",
+    "age": 40,
+    "gender": "male",
+    "height": 1.8,
+    "weight": 90,
+    "bmi": 27.78,
+    "verdict": "Normal"
+  },
+  "P005": {
+    "name": "Neha Sinha",
+    "city": "Kolkata",
+    "age": 30,
+    "gender": "female",
+    "height": 1.55,
+    "weight": 75,
+    "bmi": 31.22,
+    "verdict": "Obese"
+  }
 }
