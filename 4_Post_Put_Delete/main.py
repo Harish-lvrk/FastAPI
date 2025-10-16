@@ -1,192 +1,237 @@
-from fastapi import FastAPI,Request,Path, HTTPException, Query
-from fastapi.responses import JSONResponse
-from fastapi.responses import HTMLResponse
+"""
+FastAPI Patient Management API
+--------------------------------
+A simple CRUD API for managing patient records.
+
+Features:
+- Create, view, edit, delete patients
+- Sort patients by height, weight, or BMI
+- Computed BMI and verdict fields
+- JSON file used as data storage
+"""
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
+from fastapi import FastAPI, Request, Path, HTTPException, Query
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-import json 
+from pydantic import BaseModel, Field, computed_field
+from typing import Annotated, Literal, Optional
+import json
 import uvicorn
-from pydantic import BaseModel,Field,computed_field
-from typing import Annotated,Literal,Optional
-app = FastAPI()
 
+
+# -----------------------------------------------------------------------------
+# App Initialization
+# -----------------------------------------------------------------------------
+app = FastAPI(
+    title="Patient Management API",
+    version="1.0.0",
+    description="A simple FastAPI application for managing patient data."
+)
+
+# Initialize Jinja2Templates for rendering HTML templates
+templates = Jinja2Templates(directory="4_Post_Put_Delete/templates")
+
+
+# -----------------------------------------------------------------------------
+# Data Models
+# -----------------------------------------------------------------------------
 class Patient(BaseModel):
-    id : Annotated[str,Field(...,description="Id of the patient",examples=['P001'])]
-    name : Annotated[str,Field(...,description="Name of the patient")]
-    city : Annotated[str,Field(...,description="City where the patient is living")]
-    age : Annotated[int,Field(...,gt=0,lt=120,description="Enter the age of the patient")]
-    gender : Annotated[Literal['male','female','others'],Field(...,description="gender of the patient")]
-    height : Annotated[float,Field(...,gt=0,description='Height of the patient')]
-    weight : Annotated[float,Field(...,gt=0,description="Weight of the patient")] 
-    
+    """
+    Represents a patient record.
+    Includes automatically computed fields for BMI and health verdict.
+    """
+    id: Annotated[str, Field(..., description="Unique ID of the patient", examples=['P001'])]
+    name: Annotated[str, Field(..., description="Full name of the patient")]
+    city: Annotated[str, Field(..., description="City where the patient lives")]
+    age: Annotated[int, Field(..., gt=0, lt=120, description="Age of the patient")]
+    gender: Annotated[Literal['male', 'female', 'others'], Field(..., description="Gender of the patient")]
+    height: Annotated[float, Field(..., gt=0, description="Height of the patient (in meters)")]
+    weight: Annotated[float, Field(..., gt=0, description="Weight of the patient (in kilograms)")]
 
+    # Computed field for BMI
     @computed_field
     @property
-    def bmi(self)->float:
-        bmi = round(self.weight/(self.height**2))
-        return bmi
-    
+    def bmi(self) -> float:
+        """Calculate Body Mass Index."""
+        return round(self.weight / (self.height ** 2), 2)
+
+    # Computed field for BMI verdict
     @computed_field
     @property
-    def verdict(self)->str:
+    def verdict(self) -> str:
+        """Return health verdict based on BMI."""
         if self.bmi < 18.5:
             return "Underweight"
-        elif self.bmi <30:
+        elif self.bmi < 30:
             return "Normal"
-        else:
-            return "Obese"
+        return "Obese"
+
+
 class PatientUpdate(BaseModel):
+    """
+    Partial update model for patient data.
+    All fields are optional for flexible updates.
+    """
     name: Annotated[Optional[str], Field(default=None)]
     city: Annotated[Optional[str], Field(default=None)]
     age: Annotated[Optional[int], Field(default=None, gt=0)]
-    gender: Annotated[Optional[Literal['male', 'female']], Field(default=None)]
+    gender: Annotated[Optional[Literal['male', 'female', 'others']], Field(default=None)]
     height: Annotated[Optional[float], Field(default=None, gt=0)]
     weight: Annotated[Optional[float], Field(default=None, gt=0)]
-    
 
 
-
-def load_data():
-    with open('4_Post_Put_Delete/patients.json','r') as f:
-        data = json.load(f)
-    return data
-
-def save_data(data):
-    with open('4_Post_Put_Delete/patients.json','w') as f:
-        json.dump(data,f)
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+def load_data() -> dict:
+    """Load all patient data from the JSON file."""
+    with open('4_Post_Put_Delete/patients.json', 'r') as f:
+        return json.load(f)
 
 
+def save_data(data: dict) -> None:
+    """Save all patient data back to the JSON file."""
+    with open('4_Post_Put_Delete/patients.json', 'w') as f:
+        json.dump(data, f, indent=4)
 
 
-
-@app.get('/')
+# -----------------------------------------------------------------------------
+# Routes: General
+# -----------------------------------------------------------------------------
+@app.get("/", tags=["General"])
 def hello():
-    return {'message':'hellow world'}
+    """Root route - returns a welcome message."""
+    return {"message": "Hello, world! Welcome to the Patient API."}
 
 
-# Initialize Jinja2Templates, pointing to your templates directory
-templates = Jinja2Templates(directory="4_Post/templates")
-
-@app.get("/about", response_class=HTMLResponse)
+@app.get("/about", response_class=HTMLResponse, tags=["General"])
 async def about(request: Request):
-    # Define context data to pass to the template
+    """
+    Render a simple HTML page using Jinja2 template.
+    Example use-case: displaying basic app info.
+    """
     context = {"request": request, "name": "Hareesh"}
-    # Render the template and return it as an HTMLResponse
     return templates.TemplateResponse("index.html", context)
 
 
-
-@app.get('/view')
-def view():
+# -----------------------------------------------------------------------------
+# Routes: Patients
+# -----------------------------------------------------------------------------
+@app.get("/view", tags=["Patients"])
+def view_patients():
+    """Return all patient records."""
     return load_data()
 
 
-@app.get('/patient/{patient_id}')
-def view_patient(patient_id: str = Path(...,description='Id of the patient in  the DB',example='P001')):
+@app.get("/patient/{patient_id}", tags=["Patients"])
+def view_patient(
+    patient_id: str = Path(..., description="Patient ID to retrieve", example="P001")
+):
+    """Fetch a single patient's data by ID."""
     data = load_data()
+    if patient_id not in data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return data[patient_id]
 
-    if patient_id in data:
-        return data[patient_id]
-    raise HTTPException(status_code=404, detail="patient not found")
 
-@app.get('/sort')
-def sort_patients(sort_by: str = Query(...,description='sort on the basis of height , weight and bmi'),sort_order: str = Query('asc',description='sort in asc or desc order')):
-
-    valid_fields = ['height','weight','bmi']
-
+@app.get("/sort", tags=["Patients"])
+def sort_patients(
+    sort_by: str = Query(..., description="Sort field: height, weight, or bmi"),
+    sort_order: str = Query('asc', description="Sort order: 'asc' or 'desc'")
+):
+    """
+    Sort patients by a specific field (height, weight, or BMI).
+    """
+    valid_fields = ['height', 'weight', 'bmi']
     if sort_by not in valid_fields:
-        raise HTTPException(status_code=400,detail=f'Invalid field select from {valid_fields}')
-    
-    if sort_order not in ['asc','desc']:
-        raise HTTPException(status_code=400,detail=f'Invalid sort order select between asc or desc')
-    
-    data = load_data()
-    
-    order = True if sort_order=='desc' else False
+        raise HTTPException(status_code=400, detail=f"Invalid field. Choose from {valid_fields}")
+    if sort_order not in ['asc', 'desc']:
+        raise HTTPException(status_code=400, detail="Sort order must be 'asc' or 'desc'")
 
-   
-    sorted_data = sorted(data.values(),key = lambda x:x.get(sort_by,0),reverse=order) 
-    """If 'age' does NOT exist, use 0 as the default value.
-                    So 0 here prevents errors like KeyError if 'age' is missing, and ensures those entries are treated as having age 0."""
+    data = load_data()
+    reverse_order = sort_order == 'desc'
+
+    sorted_data = sorted(
+        data.values(),
+        key=lambda x: x.get(sort_by, 0),
+        reverse=reverse_order
+    )
     return sorted_data
 
-@app.post('/create')
+
+# -----------------------------------------------------------------------------
+# Routes: Create / Update / Delete
+# -----------------------------------------------------------------------------
+@app.post("/create", tags=["Patients"])
 def create_patient(patient: Patient):
-
-    # load exissting data
+    """
+    Create a new patient record.
+    Raises error if patient ID already exists.
+    """
     data = load_data()
-
-    # check if the patient is already exist
 
     if patient.id in data:
-        raise HTTPException(status_code=400, detail="Patient is already exist")
-
-    # if new patient add to the dataset
+        raise HTTPException(status_code=400, detail="Patient already exists")
 
     data[patient.id] = patient.model_dump(exclude=['id'])
-
     save_data(data)
 
-    return JSONResponse(status_code=201,content={'message':"Patient Created successfully"})
+    return JSONResponse(status_code=201, content={"message": "Patient created successfully"})
 
-@app.put('/edit/{patient_id}')
-def update_patient(patient_id:str,patient_update: PatientUpdate):
 
+@app.put("/edit/{patient_id}", tags=["Patients"])
+def update_patient(patient_id: str, patient_update: PatientUpdate):
+    """
+    Update an existing patient record.
+    Recomputes BMI and verdict after updates.
+    """
+    # Retrieve existing patient data
     existing_patient_info = view_patient(patient_id=patient_id)
 
-    update_patient_info = patient_update.model_dump(exclude_unset=True)
+    # Apply only provided updates
+    updated_fields = patient_update.model_dump(exclude_unset=True)
+    for key, value in updated_fields.items():
+        existing_patient_info[key] = value
 
-    for key,Value in update_patient_info.items():
-        existing_patient_info[key] = Value
-
-    # existing_patient_info -> pydanticobject -> updateedbmi + verdict
-
+    # Rebuild with Pydantic model to auto-update computed fields
     existing_patient_info['id'] = patient_id
-    patient_pydantic_obj = Patient(**existing_patient_info)
+    patient_obj = Patient(**existing_patient_info)
 
-    # -> pydantic object -> dict
-
-    existing_patient_info = patient_pydantic_obj.model_dump(exclude='id')
-
-    #load  the data
+    # Save updated record
     data = load_data()
-    #save the disct to the data
-    data[patient_id] = existing_patient_info
+    data[patient_id] = patient_obj.model_dump(exclude=['id'])
     save_data(data)
 
-    return JSONResponse(status_code=200, content={'message': 'patient updated'})
+    return JSONResponse(status_code=200, content={"message": "Patient updated successfully"})
 
 
-
-@app.delete('/delete/{patient_id}')
+@app.delete("/delete/{patient_id}", tags=["Patients"])
 def delete_patient(patient_id: str):
-    
+    """
+    Delete a patient record by ID.
+    Returns a success message if deleted.
+    """
     data = load_data()
 
     if patient_id not in data:
-        raise HTTPException(status_code=404,detail="Patient not found")
-    
+        raise HTTPException(status_code=404, detail="Patient not found")
+
     del data[patient_id]
+    save_data(data)
 
-    save_data(data=data)
-
-    return JSONResponse(status_code=200, content={"message": "patient deleted"})
-
+    return JSONResponse(status_code=200, content={"message": "Patient deleted successfully"})
 
 
-
-
-
-
-
-
-
-
-
-
-# Run the application with automatic reloading for development
+# -----------------------------------------------------------------------------
+# Run App
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",  # The import string "module_name:app_instance_name"
+        "main:app",
         host="127.0.0.1",
         port=8000,
-        reload=True  # Enables the auto-reload feature
+        reload=True
     )
