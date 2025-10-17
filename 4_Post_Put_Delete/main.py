@@ -179,7 +179,7 @@ def create_patient(patient: Patient):
     data[patient.id] = patient.model_dump(exclude=['id'])
     save_data(data)
 
-    return JSONResponse(status_code=201, content={"message": "Patient created successfully"})
+    return JSONResponse(status_coSortde=201, content={"message": "Patient created successfully"})
 
 
 @app.put("/edit/{patient_id}", tags=["Patients"])
